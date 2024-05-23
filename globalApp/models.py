@@ -29,11 +29,10 @@ class Annonce(models.Model):
     numerotelephone= models.IntegerField(null=True)
     date_de_modification= models.DateTimeField(auto_now= True , null= True)
     type_de_don = models.CharField(max_length= 20 , null=True)
+    latitude = models.FloatField( null=True)
+    longitude = models.FloatField( null = True)
 
-class Notification(models.Model):
-    type_de_notif = models.CharField(max_length=15)
-    titre = models.CharField(max_length=15)
-    contenue = models.CharField(max_length=50)
+
 
 class EffectueDon(models.Model):
     donneur = models.ForeignKey(Donneur , on_delete=models.CASCADE , related_name="effectue")
@@ -56,9 +55,6 @@ class Demande(models.Model):
     class Meta:
         unique_together = ['utilisateur_dest', 'utilisateur_src']
 
-class NotifEnvoyer(models.Model):
-    utilisateur = models.ForeignKey(Utilisateur ,on_delete=models.CASCADE )
-    notification = models.ForeignKey(Notification ,on_delete=models.CASCADE )
 
 class Tokens(models.Model):
     token = models.CharField(max_length=100 , primary_key= True )

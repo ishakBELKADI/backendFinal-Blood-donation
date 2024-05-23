@@ -135,6 +135,9 @@ def createAnounce(request , pk):
             description = info["description"],
             groupSanguin=info["groupSanguin"],
             place=info["place"],
+            type_de_don = info["type_de_don"],
+            latitude = info["latitude"],
+            longitude = info["longitude"],
             date_de_Don_max= date_aware,
             numerotelephone= info["numerotelephone"]
               )
@@ -145,13 +148,15 @@ def createAnounce(request , pk):
     return JsonResponse({"message :" , "methode doit etre POST"})   
     
 
-def recuperToutLesAnnonces(request):
+def recuperToutLesAnnonces(request , pk):
     annonces = Annonce.objects.all()
+    user = Utilisateur.objects.get(id = pk)
 
     # Sérialiser les annonces en format JSON
     data = []
     for annonce in annonces:
         utilisateur = Utilisateur.objects.get(id = annonce.utilisateur.id)
+        
         user_data = {
                 'id': utilisateur.id,
                 'nom': utilisateur.nom,
@@ -162,17 +167,41 @@ def recuperToutLesAnnonces(request):
                 'willaya': utilisateur.willaya,
                 'daira': utilisateur.daira,
             }
-        data.append({
+        try:
+             demande = Demande.objects.get(
+             Q(utilisateur_src=utilisateur, utilisateur_dest=user) | 
+             Q(utilisateur_src=user, utilisateur_dest=utilisateur)
+                )
+             data.append({
             'id':annonce.id,
             'utilisateur': user_data,
             'description': annonce.description,
             'groupSanguin': annonce.groupSanguin,
             'place': annonce.place,
             'date_de_publication': annonce.date_de_publication.isoformat(),
+            'latitude' : annonce.latitude,
+            'longitude': annonce.longitude,
             'date_de_Don_max': annonce.date_de_Don_max.isoformat() if annonce.date_de_Don_max else None,
             'numerotelephone': annonce.numerotelephone,
             'date_de_modification': annonce.date_de_modification.isoformat() if annonce.date_de_modification else None,
+            'etat_demande' : demande.etat_demande
         })
+        except Demande.DoesNotExist:
+            data.append({
+            'id':annonce.id,
+            'utilisateur': user_data,
+            'description': annonce.description,
+            'groupSanguin': annonce.groupSanguin,
+            'place': annonce.place,
+            'latitude' : annonce.latitude,
+            'longitude': annonce.longitude,
+            'date_de_publication': annonce.date_de_publication.isoformat(),
+            'date_de_Don_max': annonce.date_de_Don_max.isoformat() if annonce.date_de_Don_max else None,
+            'numerotelephone': annonce.numerotelephone,
+            'type_de_don':annonce.type_de_don,
+            'date_de_modification': annonce.date_de_modification.isoformat() if annonce.date_de_modification else None,
+            'etat_demande' : 'null'
+               })        
     return JsonResponse(data, safe=False)
 
 
@@ -197,7 +226,10 @@ def recupererAnnoncesUser(request , pk):
                              'utilisateur': user_data,
                               'description': annonce.description,
                               'groupSanguin': annonce.groupSanguin,
-                               'place': annonce.place,
+                              'place': annonce.place,
+                                'latitude' : annonce.latitude,
+                                'longitude': annonce.longitude,
+                                'type_de_don':annonce.type_de_don,
                                 'date_de_publication': annonce.date_de_publication.isoformat(),
                                 'date_de_Don_max': annonce.date_de_Don_max.isoformat() if annonce.date_de_Don_max else None,
                                 'numerotelephone': annonce.numerotelephone,
