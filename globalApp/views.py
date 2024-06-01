@@ -2,13 +2,20 @@ import datetime
 import json
 from time import timezone
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from globalApp.models import *
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
+from django.contrib.auth import logout
+
 
 # Create your views here.
+def custom_logout_view(request):
+    request.method = 'POST'
+    print("azdem")
+    logout(request)
+    return redirect('/')
 
 @csrf_exempt
 def createUser(request):
@@ -149,7 +156,7 @@ def createAnounce(request , pk):
     
 
 def recuperToutLesAnnonces(request , pk):
-    annonces = Annonce.objects.all()
+    annonces = Annonce.objects.all().order_by('-date_de_publication')
     user = Utilisateur.objects.get(id = pk)
 
     # Sérialiser les annonces en format JSON
@@ -183,6 +190,7 @@ def recuperToutLesAnnonces(request , pk):
             'longitude': annonce.longitude,
             'date_de_Don_max': annonce.date_de_Don_max.isoformat() if annonce.date_de_Don_max else None,
             'numerotelephone': annonce.numerotelephone,
+            'type_de_don' : annonce.type_de_don,
             'date_de_modification': annonce.date_de_modification.isoformat() if annonce.date_de_modification else None,
             'etat_demande' : demande.etat_demande
         })
@@ -315,7 +323,11 @@ def createDemande(request):
 
 @csrf_exempt   
 def modifierEtatDemande(request , pkU , pkD):
-    demande = get_object_or_404(Demande, utilisateur_src_id=pkD, utilisateur_dest_id=pkU)    
+    demande = get_object_or_404(
+    Demande, 
+    (Q(utilisateur_src_id=pkD, utilisateur_dest_id=pkU) | 
+     Q(utilisateur_src_id=pkU, utilisateur_dest_id=pkD))
+             )   
     data = json.loads(request.body)
     demande.etat_demande = data['etat_demande']
     demande.save()
@@ -348,15 +360,23 @@ def recupererDonneurs(request):
         return JsonResponse({"message" : "pas de donneurs"})
     
     
-@csrf_exempt   
-def recupererDonneursUserState(request , pk):
+@csrf_exempt
+def recupererDonneursUserState(request, pk):
     donneurs = Donneur.objects.all()
-    user = Utilisateur.objects.get(id = pk)
+    try:
+        user = Utilisateur.objects.get(id=pk)
+    except Utilisateur.DoesNotExist:
+        return JsonResponse({"message": "Utilisateur introuvable"}, status=404)
+
     if donneurs.exists():
-            data = []
-            for donneur in donneurs:
-             utilisateur = Utilisateur.objects.get(id = donneur.utilisateur.id)
-             user_data = {
+        data = []
+        for donneur in donneurs:
+            try:
+                utilisateur = Utilisateur.objects.get(id=donneur.utilisateur.id)
+            except Utilisateur.DoesNotExist:
+                continue  # Skip this donor if the user does not exist
+
+            user_data = {
                 'id': utilisateur.id,
                 'nom': utilisateur.nom,
                 'prenom': utilisateur.prenom,
@@ -365,30 +385,38 @@ def recupererDonneursUserState(request , pk):
                 'groupSanguin': utilisateur.groupSanguin,
                 'willaya': utilisateur.willaya,
                 'daira': utilisateur.daira,
-             }
-             demande = Demande.objects.filter(utilisateur_dest= utilisateur, utilisateur_src = user)
-             if demande.exists():
-                 demandeConcrete = Demande.objects.get(utilisateur_dest= utilisateur, utilisateur_src = user)
-                 data.append({
-                    'id':donneur.id,
-                    'utilisateur': user_data,
-                    'statu' : donneur.statu,
-                    'date_dernier_don' : donneur.date_dernier_don,
-                    'etat_demande' : demandeConcrete.etat_demande
-                     })
-             else:
+            }
+
+            try:
+                demande = Demande.objects.filter(
+                    Q(utilisateur_src=utilisateur, utilisateur_dest=user) | 
+                    Q(utilisateur_src=user, utilisateur_dest=utilisateur)
+                ).first()  # Get the first matching Demande or None
+            except Demande.DoesNotExist:
+                demande = None
+
+            if demande:
                 data.append({
-             'id':donneur.id,
-             'utilisateur': user_data,
-              'statu' : donneur.statu,
-             'date_dernier_don' : donneur.date_dernier_don,
-             'etat_demande' : 'null'
-             
-               })
-            return JsonResponse(data , safe=False)
+                    'id': donneur.id,
+                    'utilisateur': user_data,
+                    'statu': donneur.statu,
+                    'date_dernier_don': donneur.date_dernier_don,
+                    'etat_demande': demande.etat_demande
+                })
+            else:
+                data.append({
+                    'id': donneur.id,
+                    'utilisateur': user_data,
+                    'statu': donneur.statu,
+                    'date_dernier_don': donneur.date_dernier_don,
+                    'etat_demande': 'null'
+                })
+
+        return JsonResponse(data, safe=False)
     else:
-        return JsonResponse({"message" : "pas de donneurs"})    
+        return JsonResponse({"message": "Pas de donneurs"}, status=404)    
     
+
 def recupererDemande(request , pk):
     if request.method == 'GET':
         utilisateur = Utilisateur.objects.get(id = pk)
@@ -539,9 +567,11 @@ def deleteDon(request , pk  , date ):
 def demandesAccepter(request, pk):
     if request.method == 'GET':
         demandes = Demande.objects.filter(Q(utilisateur_src__id=pk) | Q(utilisateur_dest__id=pk) , etat_demande='Accepté')        
+        pk = int(pk)
         data = []
+        print(demandes)
         for demande in demandes:
-            if(demande.utilisateur_src.pk == pk):
+            if demande.utilisateur_src.id == pk:
                 user_data = {
                 'id': demande.utilisateur_dest.id,
                 'nom': demande.utilisateur_dest.nom,
@@ -570,7 +600,44 @@ def demandesAccepter(request, pk):
                 'etat_demande': demande.etat_demande,
             }
             data.append(demande_data)
+        print(data)
         return JsonResponse(data, safe=False)
+    
+@csrf_exempt
+def changeretatdonneur(request , pk):
+  if request.method == 'PUT':
+      
+     donneur = Donneur.objects.get(utilisateur__id = pk)
+     if donneur.statu == 'Apte':
+        donneur.statu = 'inapte'
+     else: donneur.statu='Apte'
+     donneur.save()
+     return JsonResponse({"message" : "Statu changé"})
+ 
+def getstatu(request , pk):
+    try :
+        donneur = Donneur.objects.get(utilisateur__id = pk)
+        return JsonResponse({"message" : donneur.statu})
+    except Donneur.DoesNotExist:
+        return JsonResponse({"message" : "non donneur"})
+
+@csrf_exempt
+def supprimerDemande(request, pk1, pk2):
+    if request.method == 'DELETE':
+        try:
+            demande = Demande.objects.get(
+                Q(utilisateur_src_id=pk1, utilisateur_dest_id=pk2) | 
+                Q(utilisateur_src_id=pk2, utilisateur_dest_id=pk1)
+            )
+            demande.delete()
+            return JsonResponse({"message": "Demande supprimée"})
+        except Demande.DoesNotExist:
+            return JsonResponse({"message": "Demande introuvable"}, status=404)
+    else:
+        return JsonResponse({"message": "Méthode non autorisée"}, status=405)
+     
+    
+  
                     
     
 

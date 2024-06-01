@@ -21,9 +21,16 @@ path('creeDon/' , views.creeDon),
 path('recupererDonUser/<str:pk>' , views.recupererDonUser),
 path('recupererAllUsers/' , views.recupererAllUsers),
 path('createToken/' , views.createToken),
+path('etatDonneur/<str:pk>' , views.changeretatdonneur),
+path('getstatu/<str:pk>' , views.getstatu),
 path('recupereTokenUser/<str:pk>' , views.recupereTokenUser),
 path('deleteDon/<str:pk>/<str:date>' , views.deleteDon),
 path('demandesAccepter/<str:pk>' , views.demandesAccepter),
+path('logout/', views.custom_logout_view, name='logout'),
+path('supprimerDemande/<str:pk1>/<str:pk2>' , views.supprimerDemande),
+
+
+
 
 
 

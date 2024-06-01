@@ -15,6 +15,16 @@ class UtilisateurAdmin(admin.ModelAdmin):
     list_display = ('nom', 'prenom', 'email', 'numtel', 'groupSanguin', 'willaya', 'daira')
     readonly_fields = ['nom', 'prenom', 'email', 'numtel', 'groupSanguin', 'willaya', 'daira']
     list_filter = ('willaya' , 'groupSanguin')
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_as_new'] = False
+        extra_context['show_save_and_add_another'] = False
+        extra_context['show_save_and_continue'] = False
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    def has_add_permission(self, request):
+        return False
+
     
     
 class DonneurAdmin(admin.ModelAdmin):
@@ -42,6 +52,16 @@ class DonneurAdmin(admin.ModelAdmin):
         return obj.utilisateur.groupSanguin
     utilisateur_groupSanguin.admin_order_field = 'utilisateur__willaya'  # Permet de trier par groupe sanguin dans l'admin
     utilisateur_groupSanguin.short_description = 'willaya'
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_as_new'] = False
+        extra_context['show_save_and_add_another'] = False
+        extra_context['show_save_and_continue'] = False
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    def has_add_permission(self, request):
+        return False
+
 
     
 
@@ -58,6 +78,15 @@ class AnnonceAdmin(admin.ModelAdmin):
     def type_don_et_group_sanguin(self, obj):
         return f"Type : {obj.type_de_don}, Groupe sanguin: {obj.groupSanguin}"
     type_don_et_group_sanguin.short_description = 'Type de don et Groupe sanguin'
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_as_new'] = False
+        extra_context['show_save_and_add_another'] = False
+        extra_context['show_save_and_continue'] = False
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    def has_add_permission(self, request):
+        return False
 
 
 class EffectueDonAdmin(admin.ModelAdmin):
@@ -69,8 +98,16 @@ class EffectueDonAdmin(admin.ModelAdmin):
     def donneur_info(self, obj):
         return f"{obj.donneur.utilisateur.nom} {obj.donneur.utilisateur.prenom}"
     donneur_info.short_description = 'Nom et prenom de donneur'
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_as_new'] = False
+        extra_context['show_save_and_add_another'] = False
+        extra_context['show_save_and_continue'] = False
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    def has_add_permission(self, request):
+        return False
 
-    
 
 
 class DemandeAdmin(admin.ModelAdmin):
@@ -87,23 +124,43 @@ class DemandeAdmin(admin.ModelAdmin):
         return obj.utilisateur_dest.nom
     utilisateur_dest_nom.admin_order_field = 'utilisateur_dest__nom' 
     utilisateur_dest_nom.short_description = 'utilisateur destination'
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_as_new'] = False
+        extra_context['show_save_and_add_another'] = False
+        extra_context['show_save_and_continue'] = False
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    def has_add_permission(self, request):
+        return False
 
     
 
 
 
-class TokensAdmin(admin.ModelAdmin):
-    search_fields = ['token', 'utilisateur__nom']
+
 
 class ProblemsAdmin(admin.ModelAdmin):
     search_fields = ['problem', 'utilisateur_src__nom' , 'utilisateur_src__prenom']
-    list_display = ('utilisateur_nom_prenom', 'problem')
-    readonly_fields = ('problem' ,'utilisateur_src')
+    list_display = ('utilisateur_nom_prenom', 'problem' , 'date_de_signalement')
+    readonly_fields = ('problem' ,'utilisateur_src' , 'date_de_signalement' )
 
     def utilisateur_nom_prenom(self, obj):
         return f"{obj.utilisateur_src.nom} {obj.utilisateur_src.prenom}"
     utilisateur_nom_prenom.admin_order_field = 'utilisateur_src__nom'  # Permet de trier par nom dans l'admin
     utilisateur_nom_prenom.short_description = 'Signalé par'
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_as_new'] = False
+        extra_context['show_save_and_add_another'] = False
+        extra_context['show_save_and_continue'] = False
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    def add_view(self, request, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        return super().add_view(request, form_url, extra_context=extra_context)
+    def has_add_permission(self, request):
+        return False
     
 
 
@@ -119,7 +176,7 @@ admin.site.register(Donneur, DonneurAdmin)
 admin.site.register(Annonce, AnnonceAdmin)
 admin.site.register(EffectueDon, EffectueDonAdmin)
 admin.site.register(Demande, DemandeAdmin)
-admin.site.register(Tokens, TokensAdmin)
+admin.site.register(Tokens)
 admin.site.register(Problems, ProblemsAdmin)
 admin.site.site_header= "Admin interface grappgique"
 admin.site.site_title= "le coté adminstrartion"

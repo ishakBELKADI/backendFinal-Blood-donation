@@ -62,6 +62,7 @@ class Tokens(models.Model):
 
 class Problems(models.Model):
     problem = models.CharField(max_length=100)
+    date_de_signalement = models.DateTimeField(auto_now_add= True , null=True)
     utilisateur_src = models.ForeignKey(Utilisateur ,on_delete=models.CASCADE )
 
     
